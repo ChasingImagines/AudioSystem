@@ -10,7 +10,7 @@
    - Projenizde `Resources` klasörü açmak ve `Resources.Load` arayışlarına girmek zorunda değilsiniz.
    - Tüm kataloglar ve mikser ayarları tek bir merkezi **`AudioDatabase`** ScriptableObject içinde toplanır.
 2. **Katalog Dışı Kaçak Ses Çalma Yasaktır:**
-   - Sahnelerdeki scriptlerin rastgele `AudioSource.PlayClipAtPoint` veya kaçak ses çalması engellenir; her ses bir katalog kaydına bağlı olmak zorundadır.
+   - Sahnelerdeki scriptlerin kafasına göre kontrolsüz veya kaçak ses çalması engellenir; projedeki her ses tek bir merkezi katalog kaydına bağlı olmak zorundadır.
 3. **Tip Güvenli `AudioKey` (String Yazmaya Son):**
    - Kodda `"explosion"` gibi elle string yazmak yerine **`AudioKey`** kullanılır. Yazım hatası (typo) riski sıfıra iner.
    - Inspector'da otomatik arama çubuklu (fuzzy search) şık bir açılır menü açılır.
