@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -10,15 +11,15 @@ namespace Yasin.AudioSystem
     /// </summary>
     public static class AudioSystemManager
     {
-        public static AudioDatabase Database => AudioDatabase.Instance;
+        public static IReadOnlyList<AudioCatalog> Catalogs => AudioDatabase.Catalogs;
 
         /// <summary>
         /// Bir sesin kayıtlı olup olmadığını kontrol eder.
         /// </summary>
         public static bool HasSound(string soundId)
         {
-            if (string.IsNullOrWhiteSpace(soundId) || Database == null) return false;
-            return Database.TryGetEntry(soundId, out _);
+            if (string.IsNullOrWhiteSpace(soundId)) return false;
+            return AudioDatabase.TryGetEntry(soundId, out _);
         }
 
         public static bool HasSound(AudioKey key) => HasSound(key.SoundId);
@@ -44,14 +45,7 @@ namespace Yasin.AudioSystem
             if (string.IsNullOrWhiteSpace(soundId))
                 return null;
 
-            AudioDatabase db = Database;
-            if (db == null)
-            {
-                Debug.LogWarning("[AudioSystem] Sahnede veya projede AudioDatabase bulunamadı!");
-                return null;
-            }
-
-            if (!db.TryGetEntry(soundId, out AudioCatalog.Entry entry))
+            if (!AudioDatabase.TryGetEntry(soundId, out AudioCatalog.Entry entry))
             {
                 Debug.LogWarning($"[AudioSystem] '{soundId}' ID'li ses hiçbir katalogda bulunamadı!");
                 return null;

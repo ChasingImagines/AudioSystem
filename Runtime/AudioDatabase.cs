@@ -6,97 +6,85 @@ using UnityEngine.Audio;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Projedeki tüm AudioCatalog dosyalarını tek bir merkezde toplayan ve yöneten ana ScriptableObject.
-    /// Resources klasörü gereksinimini ortadan kaldırır.
+    /// Projedeki tüm AudioCatalog dosyalarını otomatik toplayan ve statik olarak eriştiren merkezi veritabanı.
+    /// Elle katalog sürükleyip bırakma veya Resources klasörü zorunluluğunu tamamen ortadan kaldırır.
     /// </summary>
-    [CreateAssetMenu(menuName = "AudioSystem/Audio Database", fileName = "AudioDatabase", order = 0)]
-    public sealed class AudioDatabase : ScriptableObject
+    public static class AudioDatabase
     {
-        private static AudioDatabase _instance;
-        public static AudioDatabase Instance
+        private static readonly List<AudioCatalog> _catalogs = new List<AudioCatalog>();
+        private static readonly Dictionary<string, AudioCatalog.Entry> _compositeLookup = new Dictionary<string, AudioCatalog.Entry>(StringComparer.OrdinalIgnoreCase);
+        private static bool _initialized;
+
+        public static IReadOnlyList<AudioCatalog> Catalogs
         {
             get
             {
-                if (_instance == null)
-                {
-                    _instance = FindDatabaseInstance();
-                }
-                return _instance;
+                EnsureInitialized();
+                return _catalogs;
             }
-            internal set => _instance = value;
         }
 
-        [Header("Mikser Ayarları")]
-        [Tooltip("Oyunun ana AudioMixer dosyası.")]
-        [SerializeField] private AudioMixer masterMixer;
-
-        [Header("Kataloglar")]
-        [Tooltip("Oyunda kullanılacak tüm AudioCatalog varlıkları bu listeye eklenir.")]
-        [SerializeField] private List<AudioCatalog> catalogs = new List<AudioCatalog>();
-
-        [NonSerialized]
-        private readonly Dictionary<string, AudioCatalog.Entry> _compositeLookup = new Dictionary<string, AudioCatalog.Entry>(StringComparer.OrdinalIgnoreCase);
-        [NonSerialized]
-        private bool _lookupBuilt;
-
-        public AudioMixer MasterMixer => masterMixer;
-        public IReadOnlyList<AudioCatalog> Catalogs => catalogs;
-
-        public bool TryGetEntry(string soundId, out AudioCatalog.Entry entry)
+        public static bool TryGetEntry(string soundId, out AudioCatalog.Entry entry)
         {
-            EnsureCompositeLookup();
+            EnsureInitialized();
             entry = null;
             return !string.IsNullOrWhiteSpace(soundId) && _compositeLookup.TryGetValue(soundId.Trim(), out entry);
         }
 
-        public void EnsureCompositeLookup()
+        public static void EnsureInitialized(bool forceRefresh = false)
         {
-            if (_lookupBuilt) return;
+            if (_initialized && !forceRefresh) return;
 
+            _catalogs.Clear();
             _compositeLookup.Clear();
-            for (int i = 0; i < catalogs.Count; i++)
-            {
-                AudioCatalog cat = catalogs[i];
-                if (cat == null) continue;
 
-                cat.EnsureLookup();
-                IReadOnlyList<AudioCatalog.Entry> entries = cat.Entries;
-                for (int j = 0; j < entries.Count; j++)
+#if UNITY_EDITOR
+            // Unity Editöründe projenin neresinde olursa olsun tüm katalogları otomatik keşfeder
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:AudioCatalog");
+            if (guids != null)
+            {
+                for (int i = 0; i < guids.Length; i++)
                 {
-                    AudioCatalog.Entry e = entries[j];
-                    if (e != null && !string.IsNullOrWhiteSpace(e.id))
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[i]);
+                    AudioCatalog cat = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioCatalog>(path);
+                    if (cat != null && !_catalogs.Contains(cat))
                     {
-                        string id = e.id.Trim();
-                        if (!_compositeLookup.ContainsKey(id))
-                        {
-                            _compositeLookup[id] = e;
-                        }
+                        RegisterCatalog(cat);
                     }
                 }
             }
-
-            _lookupBuilt = true;
-        }
-
-        public void InvalidateLookup()
-        {
-            _lookupBuilt = false;
-        }
-
-        private static AudioDatabase FindDatabaseInstance()
-        {
-#if UNITY_EDITOR
-            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:AudioDatabase");
-            if (guids != null && guids.Length > 0)
-            {
-                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-                return UnityEditor.AssetDatabase.LoadAssetAtPath<AudioDatabase>(path);
-            }
 #endif
-            return null;
+            _initialized = true;
         }
 
-        private void OnEnable() => _lookupBuilt = false;
-        private void OnValidate() => _lookupBuilt = false;
+        public static void RegisterCatalog(AudioCatalog catalog)
+        {
+            if (catalog == null) return;
+
+            if (!_catalogs.Contains(catalog))
+            {
+                _catalogs.Add(catalog);
+            }
+
+            catalog.EnsureLookup();
+            IReadOnlyList<AudioCatalog.Entry> entries = catalog.Entries;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                AudioCatalog.Entry e = entries[i];
+                if (e != null && !string.IsNullOrWhiteSpace(e.id))
+                {
+                    string id = e.id.Trim();
+                    if (!_compositeLookup.ContainsKey(id))
+                    {
+                        _compositeLookup[id] = e;
+                    }
+                }
+            }
+        }
+
+        public static void InvalidateLookup()
+        {
+            _initialized = false;
+        }
     }
 }

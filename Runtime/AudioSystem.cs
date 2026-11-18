@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Yasin.AudioSystem
@@ -9,7 +10,7 @@ namespace Yasin.AudioSystem
     /// </summary>
     public static class AudioSystem
     {
-        public static AudioDatabase Database => AudioSystemManager.Database;
+        public static IReadOnlyList<AudioCatalog> Catalogs => AudioSystemManager.Catalogs;
         public static bool HasSound(string soundId) => AudioSystemManager.HasSound(soundId);
         public static bool HasSound(AudioKey key) => AudioSystemManager.HasSound(key);
 

@@ -1,23 +1,24 @@
 # AudioSystem for Unity
 
-**AudioSystem**, Unity projeleri için katalog güdümlü (Catalog-Driven), merkezi ScriptableObject veritabanına bağlı, tip güvenli (`AudioKey`) ve havuzlamalı (Pooling) yüksek performanslı bir ses yönetim motorudur.
+**AudioSystem**, Unity projeleri için katalog güdümlü (Catalog-Driven), otomatik katalog keşifli, tip güvenli (`AudioKey`) ve havuzlamalı (Pooling) yüksek performanslı bir ses yönetim motorudur.
 
 ---
 
 ## 🎯 Temel Mimarisi ve Felsefesi
 
-1. **Resources Yok (Merkezi AudioDatabase):**
-   - Projenizde `Resources` klasörü açmak ve `Resources.Load` arayışlarına girmek zorunda değilsiniz.
-   - Tüm kataloglar ve mikser ayarları tek bir merkezi **`AudioDatabase`** ScriptableObject içinde toplanır.
+1. **Sıfır Kurulum Zahmeti & Tam Otomasyon:**
+   - Projede elle veritabanı dosyası oluşturmak veya katalogları bir listeye tek tek sürükleyip bırakmak **yoktur**.
+   - `Resources` klasörü açma zorunluluğu **yoktur**.
+   - Projenin neresinde olursa olsun oluşturduğunuz tüm `AudioCatalog` dosyaları arka planda otomatik keşfedilir ve statik olarak kullanıma sunulur.
 2. **Katalog Dışı Kaçak Ses Çalma Yasaktır:**
-   - Sahnelerdeki scriptlerin kafasına göre kontrolsüz veya kaçak ses çalması engellenir; projedeki her ses tek bir merkezi katalog kaydına bağlı olmak zorundadır.
+   - Sahnelerdeki scriptlerin rastgele, kontrolsüz ses çalması engellenir; her ses merkezi bir katalog kaydına bağlı olmak zorundadır.
 3. **Tip Güvenli `AudioKey` (String Yazmaya Son):**
    - Kodda `"explosion"` gibi elle string yazmak yerine **`AudioKey`** kullanılır. Yazım hatası (typo) riski sıfıra iner.
    - Inspector'da otomatik arama çubuklu (fuzzy search) şık bir açılır menü açılır.
 4. **Tek Giriş Kapısı: `AudioSystem.`:**
    - İster `AudioSystem.Play(key)`, ister doğrudan `key.Play()` diyerek tek noktadan tüm ses işlemlerini yürütürsünüz.
 5. **Otomatik Havuzlama (Zero-GC Pooling):**
-   - Çalınan her ses için yeni `GameObject` yaratılmaz; arka planda dinamik bir `SoundEmitter` havuzu çalışır.
+   - Çalınan her ses için yeni nesne yaratılmaz; arka planda dinamik bir `SoundEmitter` havuzu çalışır.
 
 ---
 
@@ -34,27 +35,23 @@
 
 ## 🚀 Hızlı Başlangıç Rehberi
 
-### Adım 1: Katalog ve Veritabanı Oluşturma
+### Adım 1: Ses Kataloğu Oluşturun
 
-1. **Katalog Oluşturun:**
-   - Project penceresinde sağ tıklayın:
-     > **`Create > AudioSystem > Audio Catalog`**
-   - Örn: `CombatAudioCatalog.asset` adını verin ve içine sesleri ekleyin:
-     - `player_jump`
-     - `enemy_hit`
-     - `explosion`
-   - Her sesin karşısına Unity 6 `AudioClip` veya `AudioRandomContainer` dosyasını atayın.
+Project penceresinde istediğiniz bir klasörde sağ tıklayın:
+> **`Create > AudioSystem > Audio Catalog`**
 
-2. **Merkezi Veritabanını Oluşturun (Projede 1 Kere):**
-   - Project penceresinde sağ tıklayın:
-     > **`Create > AudioSystem > Audio Database`**
-   - Açılan dosyada oluşturduğunuz katalogları **Catalogs** listesine sürükleyip bırakın.
+Örn: `PlayerSounds.asset`, `UISounds.asset` adını verin ve içine sesleri ekleyin:
+- **ID:** `jump`, `attack`, `click`
+- **Resource:** Unity 6 `AudioClip` veya `AudioRandomContainer` dosyasını atayın.
+- **Mixer Group:** İsteğe bağlı olarak ilgili ses mikserini bağlayın.
+
+*(Hepsi bu kadar! Veritabanına sürükle-bırak yapmanıza gerek yoktur, sistem yeni kataloğu anında tanır.)*
 
 ---
 
 ### Adım 2: Inspector'da Ses Tanımlama (`AudioKey`)
 
-Scriptlerinizde elle string yazmak yerine doğrudan `AudioKey` tanımlayın:
+Bileşenlerinizde elle string yazmak yerine doğrudan `AudioKey` kullanın:
 
 ```csharp
 using UnityEngine;
@@ -62,7 +59,7 @@ using Yasin.AudioSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
-    // Inspector'da arama çubuklu açılır menü çıkar!
+    // Inspector'da tüm katalogları listeleyen arama çubuklu açılır menü çıkar!
     [SerializeField] private AudioKey attackSound;
     [SerializeField] private AudioKey hurtSound;
 
