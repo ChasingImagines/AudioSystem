@@ -1,48 +1,54 @@
 # AudioSystem for Unity
 
-**AudioSystem**, Unity projelerinde sesleri mantıksal kataloglar halinde düzenleyen, tip güvenli (`AudioKey`) erişim sağlayan ve arka planda AudioSource havuzu (pooling) ile sesleri oynatan hafif bir ses yönetim paketidir.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Unity 2021.3+](https://img.shields.io/badge/Unity-2021.3+-blue.svg)](https://unity.com/)
+[![Language](https://img.shields.io/badge/Language-English%20%7C%20Turkish-informational)](#-documentation-languages)
+
+[🇹🇷 Türkçe Dokümantasyon için tıklayın (README.tr.md)](README.tr.md)
+
+**AudioSystem** is a catalog-driven, high-performance sound and music management engine for Unity featuring dynamic AudioSource pooling, spatial blending, and strongly-typed `AudioKey` inspector dropdowns.
 
 ---
 
-## 🎯 Ne İşe Yarar? (Temel Amacı)
+## 🎯 Key Features
 
-Büyük projelerde ses kliplerini scriptlerin veya prefab'ların içine dağınık şekilde bağlamak yönetimi zorlaştırır. AudioSystem bu süreci şu şekilde çözer:
-
-1. **Kataloglama:** Sesleri kategorilerine göre ScriptableObject kataloglarında toplarsınız (örn: `PlayerAudioCatalog`, `UIAudioCatalog`). Bir sesi veya mikser grubunu değiştirmek istediğinizde prefab gezmez, doğrudan katalogdan değiştirirsiniz.
-2. **Tip Güvenli `AudioKey`:** Kod tarafında string ile `"jump"` yazmak yerine `AudioKey` kullanılır. Bu sayede yazım hatası (typo) riski olmaz. Inspector'da tüm katalogları tarayan arama kutulu bir açılır liste çıkar.
-3. **Otomatik Havuzlama (Zero-GC Pooling):** Çalınan her ses için yeni `GameObject` oluşturulup yok edilmez; arka planda dinamik bir `SoundEmitter` havuzu çalışır.
-4. **Resources veya Sürükle-Bırak Gerektirmez:** Katalogları bir veritabanına elle eklemeniz veya `Resources` klasörü açmanız gerekmez. Editör projedeki tüm `AudioCatalog` dosyalarını otomatik olarak tanır.
+- **Catalog-Driven Architecture:** Organize sound clips, random containers, and volume/mixer routing inside modular `AudioCatalog` ScriptableObjects instead of scattering clip references across prefabs.
+- **Type-Safe `AudioKey`:** Replace fragile magic strings with `AudioKey` structs in your components. Enjoy searchable, categorized inspector dropdowns with instant validation.
+- **Zero-GC AudioSource Pooling:** Audio playback never instantiates or destroys GameObjects during gameplay; an internal `SoundEmitter` pool handles 2D/3D playback efficiently.
+- **No Resources Setup Required:** Catalogs are automatically discovered across the project at runtime and in editor without needing manual database drag-and-drop or `Resources` folders.
+- **BGM Crossfade & Transitions:** Built-in `MusicManager` supports smooth asynchronous volume fades and crossfades.
+- **Unity 6 AudioResource Ready:** Fully supports both legacy `AudioClip` and new Unity 6 `AudioResource` / `AudioRandomContainer` assets.
 
 ---
 
-## 📦 Kurulum (Unity Package Manager)
+## 📦 Installation (Unity Package Manager)
 
-1. Unity'de **Window > Package Manager** penceresini açın.
-2. Sol üstteki **`+`** butonuna tıklayın ve **"Add package from git URL..."** seçin.
-3. Git URL'sini yapıştırıp **Add** butonuna basın:
+1. Open **Window > Package Manager** in Unity.
+2. Click the **`+`** icon in the top-left corner and select **"Add package from git URL..."**.
+3. Paste the Git URL:
    ```text
    https://github.com/ChasingImagines/AudioSystem.git
    ```
 
 ---
 
-## 🚀 Kullanım Rehberi
+## 🚀 Quick Start Guide
 
-### 1. Ses Kataloğu (AudioCatalog) Oluşturma
+### 1. Create an Audio Catalog
 
-Project penceresinde istediğiniz bir klasörde sağ tıklayın:
+Right-click anywhere in your Project window:
 > **`Create > AudioSystem > Audio Catalog`**
 
-Örn: `PlayerSounds.asset` adını verin ve içine sesleri ekleyin:
+Name it (e.g. `CombatSounds.asset`) and add your audio entries:
 - **ID:** `jump`, `footstep`, `attack`
-- **Resource:** Unity 6 `AudioClip` veya `AudioRandomContainer` dosyasını atayın.
-- **Mixer Group:** İsteğe bağlı olarak ilgili ses mikserini bağlayın.
+- **Resource:** Assign an `AudioClip` or `AudioRandomContainer`.
+- **Mixer Group:** (Optional) Select an `AudioMixerGroup` for routing.
 
 ---
 
-### 2. Inspector'da Ses Tanımlama (`AudioKey`)
+### 2. Inspector Reference (`AudioKey`)
 
-Bileşenlerinizde string alanlar yerine doğrudan `AudioKey` kullanın:
+Avoid typing raw strings—declare an `AudioKey` field in your C# components:
 
 ```csharp
 using UnityEngine;
@@ -50,15 +56,15 @@ using Yasin.AudioSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
-    // Inspector'da tüm kataloglardaki sesleri listeleyen arama kutulu açılır menü çıkar
+    // Searchable dropdown menu listing all sound IDs from all catalogs
     [SerializeField] private AudioKey attackSound;
 
     public void Attack()
     {
-        // 1. Yol: Doğrudan key üzerinden çalma:
+        // Option 1: Play directly through the key:
         attackSound.Play(transform.position);
 
-        // 2. Yol: AudioSystem üzerinden çalma:
+        // Option 2: Play through central AudioSystem API:
         AudioSystem.Play(attackSound, transform.position);
     }
 }
@@ -66,9 +72,9 @@ public class PlayerCombat : MonoBehaviour
 
 ---
 
-### 3. C# Kodundan Ses Çalma (`AudioSystem.`)
+### 3. Audio Playback API (`AudioSystem.`)
 
-Kod tarafında tüm işlemleri `AudioSystem.` üzerinden yönetebilirsiniz:
+Control all 2D/3D SFX and background music via a single static interface:
 
 ```csharp
 using UnityEngine;
@@ -82,21 +88,21 @@ public class AudioManagerExample : MonoBehaviour
 
     void Start()
     {
-        // 1. 2D / UI Sesi Çalma:
+        // 1. 2D / UI Sound (spatialBlend = 0):
         AudioSystem.PlayUI(uiClickSound);
-        // veya doğrudan key üzerinden:
+        // or directly:
         uiClickSound.PlayUI();
 
-        // 2. 3D Uzamsal Ses Çalma (Konum, Ses Seviyesi, Pitch):
+        // 2. 3D Spatial Sound (Position, Volume, Pitch):
         AudioSystem.Play(explosionSound, transform.position, volume: 0.9f, pitch: 1.1f);
 
-        // 3. Arka Plan Müziği (Crossfade geçişi ile):
+        // 3. Background Music (Smooth crossfade):
         AudioSystem.PlayMusic(backgroundMusic, fadeDuration: 1.5f, loop: true);
 
-        // 4. Müziği Yumuşakça Durdurma:
+        // 4. Stop Music:
         AudioSystem.StopMusic(fadeDuration: 1f);
 
-        // 5. Tüm Çalan Ses Efektlerini Durdurma:
+        // 5. Stop All Active SFX:
         AudioSystem.StopAllSounds();
     }
 }
@@ -104,5 +110,5 @@ public class AudioManagerExample : MonoBehaviour
 
 ---
 
-## 📄 Lisans
-MIT License - Yasin Öztürk
+## 📄 License
+This project is licensed under the [MIT License](LICENSE.md) - created by Yasin Öztürk.
