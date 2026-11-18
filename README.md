@@ -110,5 +110,12 @@ public class AudioManagerExample : MonoBehaviour
 
 ---
 
+
+---
+
+## 👥 Credits & Acknowledgments
+- **Author:** [Yasin Öztürk](https://github.com/ChasingImagines)
+- **AI Pair-Programmer:** Antigravity (Google DeepMind)
+
 ## 📄 License
 This project is licensed under the [MIT License](LICENSE.md) - created by Yasin Öztürk.
