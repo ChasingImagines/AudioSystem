@@ -1,20 +1,23 @@
 # AudioSystem for Unity
 
-**AudioSystem**, Unity projeleri için katalog güdümlü (Catalog-Driven), yüksek performanslı, havuzlamalı (Pooling) ve Inspector dostu bir ses yönetim motorudur.
+**AudioSystem**, Unity projeleri için katalog güdümlü (Catalog-Driven), merkezi ScriptableObject veritabanına bağlı, tip güvenli (`AudioKey`) ve havuzlamalı (Pooling) yüksek performanslı bir ses yönetim motorudur.
 
 ---
 
-## 🎯 Temel Felsefe: "Katalog Tek Gerçektir (Single Source of Truth)"
+## 🎯 Temel Mimarisi ve Felsefesi
 
-Klasik Unity projelerinde ses yönetimi genellikle kaosa dönüşür:
-- Sahnelerdeki scriptler kafalarına göre `AudioSource.PlayClipAtPoint` çağırır veya doğrudan `AudioClip` referansları taşır.
-- Seslerin mikser grupları, ses seviyeleri ve optimizasyonları kontrol edilemez hale gelir.
-
-**AudioSystem bu yan yolları tamamen kapatır:**
-1. **Kaçak Ses Çalma Yasaktır:** Projede çalınacak her ses mutlaka bir **AudioCatalog (ScriptableObject)** kütüphanesine kayıtlı olmalıdır.
-2. **Yalnızca Kimlik (ID) ile Çağrı:** Kod yazanlar sadece sesin ID'sini bilir (`Audio.Play("ui_click")`), arka plandaki `AudioClip`, `AudioRandomContainer` veya mikser detaylarıyla uğraşmaz.
-3. **Arama Çubuğu Olan Inspector Seçicisi:** `[AudioId]` özniteliği sayesinde Inspector'da string yazmak yerine tüm katalogdaki sesleri arayarak tek tıkla seçersiniz.
-4. **Sıfır Bellek Tahsisi (AudioSource Pooling):** Çalınan her ses için yeni nesne yaratılmaz; arka planda dinamik bir `SoundEmitter` havuzu çalışır.
+1. **Resources Yok (Merkezi AudioDatabase):**
+   - Projenizde `Resources` klasörü açmak ve `Resources.Load` arayışlarına girmek zorunda değilsiniz.
+   - Tüm kataloglar ve mikser ayarları tek bir merkezi **`AudioDatabase`** ScriptableObject içinde toplanır.
+2. **Katalog Dışı Kaçak Ses Çalma Yasaktır:**
+   - Sahnelerdeki scriptlerin rastgele `AudioSource.PlayClipAtPoint` veya kaçak ses çalması engellenir; her ses bir katalog kaydına bağlı olmak zorundadır.
+3. **Tip Güvenli `AudioKey` (String Yazmaya Son):**
+   - Kodda `"explosion"` gibi elle string yazmak yerine **`AudioKey`** kullanılır. Yazım hatası (typo) riski sıfıra iner.
+   - Inspector'da otomatik arama çubuklu (fuzzy search) şık bir açılır menü açılır.
+4. **Tek Giriş Kapısı: `AudioSystem.`:**
+   - İster `AudioSystem.Play(key)`, ister doğrudan `key.Play()` diyerek tek noktadan tüm ses işlemlerini yürütürsünüz.
+5. **Otomatik Havuzlama (Zero-GC Pooling):**
+   - Çalınan her ses için yeni `GameObject` yaratılmaz; arka planda dinamik bir `SoundEmitter` havuzu çalışır.
 
 ---
 
@@ -29,85 +32,91 @@ Klasik Unity projelerinde ses yönetimi genellikle kaosa dönüşür:
 
 ---
 
-## 🚀 Hızlı Başlangıç (3 Adımda)
+## 🚀 Hızlı Başlangıç Rehberi
 
-### Adım 1: Ses Kataloğu (AudioCatalog) Oluşturma
-Proje penceresinde `Assets/Resources/Audio/Catalogs/` klasörüne gidin (yoksa oluşturun):
-> Sağ Tık: **`Create > AudioSystem > Audio Catalog`**
+### Adım 1: Katalog ve Veritabanı Oluşturma
 
-Örneğin `SFXCatalog.asset` veya `UICatalog.asset` adını verin ve içine sesleri ekleyin:
-- **ID:** `player_jump`
-- **Resource:** Unity 6 `AudioClip` veya `AudioRandomContainer` varlığını sürükleyin.
-- **Mixer Group:** İsteğe bağlı olarak bu sesin gideceği `AudioMixerGroup`'u atayın.
+1. **Katalog Oluşturun:**
+   - Project penceresinde sağ tıklayın:
+     > **`Create > AudioSystem > Audio Catalog`**
+   - Örn: `CombatAudioCatalog.asset` adını verin ve içine sesleri ekleyin:
+     - `player_jump`
+     - `enemy_hit`
+     - `explosion`
+   - Her sesin karşısına Unity 6 `AudioClip` veya `AudioRandomContainer` dosyasını atayın.
+
+2. **Merkezi Veritabanını Oluşturun (Projede 1 Kere):**
+   - Project penceresinde sağ tıklayın:
+     > **`Create > AudioSystem > Audio Database`**
+   - Açılan dosyada oluşturduğunuz katalogları **Catalogs** listesine sürükleyip bırakın.
 
 ---
 
-### Adım 2: Inspector'da Ses Seçme (`[AudioId]`)
+### Adım 2: Inspector'da Ses Tanımlama (`AudioKey`)
 
-Bileşenlerinizde string alanlara `[AudioId]` özniteliğini ekleyin:
+Scriptlerinizde elle string yazmak yerine doğrudan `AudioKey` tanımlayın:
 
 ```csharp
 using UnityEngine;
 using Yasin.AudioSystem;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerCombat : MonoBehaviour
 {
-    // Inspector'da arama destekli açılır liste çıkar!
-    [SerializeField, AudioId] private string jumpSoundId;
+    // Inspector'da arama çubuklu açılır menü çıkar!
+    [SerializeField] private AudioKey attackSound;
+    [SerializeField] private AudioKey hurtSound;
 
-    public void Jump()
+    public void Attack()
     {
-        // 3D uzamsal ses çalar:
-        Audio.Play(jumpSoundId, transform.position);
+        // 1. Yol: Doğrudan key üzerinden çalma:
+        attackSound.Play(transform.position);
+
+        // 2. Yol: AudioSystem üzerinden çalma:
+        AudioSystem.Play(attackSound, transform.position);
     }
 }
 ```
 
 ---
 
-### Adım 3: C# Kodundan Ses Çalma
+### Adım 3: C# Kodundan Ses Yönetimi (`AudioSystem.`)
 
-Tüm ses işlemleri tek bir statik sınıf üzerinden yürütülür:
+Kod yazarken sadece `AudioSystem.` yazıp nokta koymanız yeterlidir:
+
 ```csharp
+using UnityEngine;
 using Yasin.AudioSystem;
-```
 
-#### 1. 2D / Arayüz (UI) Sesi Çalma:
-```csharp
-Audio.PlayUI("button_click");
-// veya kısa hali:
-Audio.Play("button_click");
-```
-
-#### 2. 3D Uzamsal (Dünya Koordinatlarında) Ses Çalma:
-```csharp
-Audio.Play("explosion", enemyTransform.position);
-```
-
-#### 3. Ses Seviyesi ve Perde (Pitch) Ayarlama:
-```csharp
-// volume: 0.8f, pitch: 1.2f
-Audio.PlayUI("coin_pickup", volume: 0.8f, pitch: 1.2f);
-```
-
-#### 4. Arka Plan Müziği (Crossfade Desteğiyle):
-```csharp
-[SerializeField] private AudioClip levelMusic;
-
-void Start()
+public class GameAudioExample : MonoBehaviour
 {
-    // 2 saniyelik yumuşak geçişle (crossfade) müziği başlatır:
-    Audio.PlayMusic(levelMusic, fadeDuration: 2f, loop: true);
+    [SerializeField] private AudioKey uiClickKey;
+    [SerializeField] private AudioKey explosionKey;
+    [SerializeField] private AudioClip backgroundMusic;
+
+    void Start()
+    {
+        // 1. 2D / UI Sesi Çalma:
+        AudioSystem.PlayUI(uiClickKey);
+        // veya:
+        uiClickKey.PlayUI();
+
+        // 2. 3D Uzamsal Ses Çalma (Konum, Ses Seviyesi, Pitch):
+        AudioSystem.Play(explosionKey, transform.position, volume: 0.9f, pitch: 1.1f);
+
+        // 3. Arka Plan Müziği (Crossfade geçişli):
+        AudioSystem.PlayMusic(backgroundMusic, fadeDuration: 2f, loop: true);
+
+        // 4. Müziği Durdurma:
+        AudioSystem.StopMusic(fadeDuration: 1f);
+
+        // 5. Ses Sorgulama:
+        if (AudioSystem.HasSound(explosionKey))
+        {
+            Debug.Log("Patlama sesi katalogda mevcut.");
+        }
+    }
 }
 ```
-
----
-
-## 🔍 Neden Bu Sistemi Kullanmalısınız?
-
-- **Unity 6 Uyumlu:** Hem klasik `AudioClip`'leri hem de Unity 6'nın yeni `AudioResource` / `AudioRandomContainer` yapılarını tam destekler.
-- **Güvenli Fallback:** Yanlış yazılan veya katalogda bulunamayan bir ID olursa oyun çökmez; konsola açıklayıcı bir uyarı basar.
-- **Merkezi Ses Değişimi:** Bir ses efektini değiştirmek istediğinizde 50 farklı prefab gezmezsiniz; sadece katalogdaki ilgili ID'nin klibini değiştirmeniz yeterlidir.
 
 ---
 

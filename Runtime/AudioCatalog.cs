@@ -6,39 +6,37 @@ using UnityEngine.Audio;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Oyun olaylarında kullanılan ses kimliklerini AudioClip veya AudioResource'a (AudioRandomContainer vb.) eşler.
-    /// Gerçek sesler eklenene kadar demo sesi fallback olarak kullanılabilir.
+    /// Projedeki ses kimliklerini AudioClip veya Unity 6 AudioResource'a (AudioRandomContainer vb.) eşleyen ScriptableObject.
+    /// Tüm sesler bu kataloglar içinde toplanır.
     /// </summary>
-    [CreateAssetMenu(menuName = "AudioSystem/Audio Catalog", fileName = "AudioCatalog")]
+    [CreateAssetMenu(menuName = "AudioSystem/Audio Catalog", fileName = "NewAudioCatalog", order = 10)]
     public sealed class AudioCatalog : ScriptableObject
     {
         [Serializable]
         public sealed class Entry
         {
+            [Tooltip("Sesin benzersiz kimliği (Örn: player_jump, ui_click).")]
             public string id;
+
             [Tooltip("Unity 6 AudioResource (AudioClip veya AudioRandomContainer doğrudan buraya atanır).")]
             public AudioResource resource;
-            public AudioMixerGroup defaultMixerGroup;
 
-            public AudioResource ResolveResource()
-            {
-                return resource;
-            }
+            [Tooltip("Bu ses için özel AudioMixerGroup (atanmazsa kataloğun varsayılan mikser grubu kullanılır).")]
+            public AudioMixerGroup mixerGroup;
+
+            public AudioResource ResolveResource() => resource;
         }
 
-        [Header("Mikser Yönlendirmesi (Grup Bazlı)")]
-        [Tooltip("Bu katalogdaki tüm seslerin varsayılan olarak yönlendirileceği AudioMixerGroup.")]
+        [Header("Mikser Yönlendirmesi")]
+        [Tooltip("Bu katalogdaki seslerin varsayılan olarak yönlendirileceği AudioMixerGroup.")]
         [SerializeField] private AudioMixerGroup defaultMixerGroup;
 
-        [Header("Girdiler")]
+        [Header("Ses Listesi")]
         [SerializeField] private List<Entry> entries = new List<Entry>();
-        [SerializeField] private bool useDemoFallback = true;
-        [SerializeField] private AudioClip demoFallbackClip;
 
         [NonSerialized] private Dictionary<string, Entry> _lookup;
 
         public AudioMixerGroup DefaultMixerGroup => defaultMixerGroup;
-        public AudioClip DemoFallbackClip => useDemoFallback ? demoFallbackClip : null;
         public IReadOnlyList<Entry> Entries => entries;
 
         public bool TryGet(string id, out Entry entry)
@@ -48,7 +46,7 @@ namespace Yasin.AudioSystem
             return !string.IsNullOrWhiteSpace(id) && _lookup.TryGetValue(id.Trim(), out entry);
         }
 
-        private void EnsureLookup()
+        public void EnsureLookup()
         {
             if (_lookup != null) return;
 
@@ -57,9 +55,6 @@ namespace Yasin.AudioSystem
             {
                 Entry entry = entries[i];
                 if (entry == null || string.IsNullOrWhiteSpace(entry.id))
-                    continue;
-
-                if (entry.ResolveResource() == null)
                     continue;
 
                 _lookup[entry.id.Trim()] = entry;

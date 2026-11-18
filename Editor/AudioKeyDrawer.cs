@@ -7,13 +7,11 @@ using UnityEngine;
 namespace Yasin.AudioSystem.Editor
 {
     /// <summary>
-    /// [AudioId] özniteliğine sahip string alanları Inspector'da çizerek:
-    /// - AudioCatalog.asset içindeki tüm ses ID'lerini otomatik tarar,
-    /// - Fuzzy search (arama çubuklu) ve kategorilendirilmiş AdvancedDropdown menüsü sunar,
-    /// - Geçerli sesler için yeşil/mavi durum, geçersiz/boş ID'ler için belirgin uyarı gösterir.
+    /// AudioKey alanlarını ve [AudioId] etiketli string alanları Inspector'da arama destekli şık bir açılır menü ile çizer.
     /// </summary>
+    [CustomPropertyDrawer(typeof(AudioKey))]
     [CustomPropertyDrawer(typeof(AudioIdAttribute))]
-    public sealed class AudioIdDrawer : PropertyDrawer
+    public sealed class AudioKeyDrawer : PropertyDrawer
     {
         private static readonly List<string> CachedSoundIds = new List<string>();
         private static double _lastCacheTime;
@@ -26,7 +24,12 @@ namespace Yasin.AudioSystem.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (property.propertyType != SerializedPropertyType.String)
+            SerializedProperty targetStringProp = property;
+            if (property.type == nameof(AudioKey))
+            {
+                targetStringProp = property.FindPropertyRelative("soundId");
+            }
+            else if (property.propertyType != SerializedPropertyType.String)
             {
                 EditorGUI.PropertyField(position, property, label);
                 return;
@@ -37,13 +40,9 @@ namespace Yasin.AudioSystem.Editor
             label = EditorGUI.BeginProperty(position, label, property);
             Rect contentRect = EditorGUI.PrefixLabel(position, label);
 
-            string currentId = property.stringValue;
+            string currentId = targetStringProp != null ? targetStringProp.stringValue : string.Empty;
             bool isEmpty = string.IsNullOrWhiteSpace(currentId);
             bool isValid = !isEmpty && CachedSoundIds.Contains(currentId);
-
-            // Sağ tarafta dropdown butonu
-            float buttonWidth = contentRect.width;
-            Rect buttonRect = new Rect(contentRect.x, contentRect.y, buttonWidth, contentRect.height);
 
             string buttonText;
             if (isEmpty)
@@ -59,30 +58,32 @@ namespace Yasin.AudioSystem.Editor
                 buttonText = $"⚠️ {currentId} (Katalogda Yok!)";
             }
 
-            Color prevBg = GUI.backgroundColor;
+            Color oldBg = GUI.backgroundColor;
             if (!isEmpty && !isValid)
             {
-                GUI.backgroundColor = new Color(1f, 0.4f, 0.4f, 1f);
+                GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
             }
             else if (isValid)
             {
-                GUI.backgroundColor = new Color(0.7f, 1f, 0.7f, 1f);
+                GUI.backgroundColor = new Color(0.45f, 0.85f, 0.55f);
             }
 
-            if (GUI.Button(buttonRect, EditorGUIUtility.TrTempContent(buttonText), EditorStyles.popup))
+            if (GUI.Button(contentRect, buttonText, EditorStyles.popup))
             {
-                _dropdownState ??= new AdvancedDropdownState();
+                if (_dropdownState == null)
+                    _dropdownState = new AdvancedDropdownState();
+
                 var dropdown = new AudioIdDropdown(_dropdownState, CachedSoundIds, selectedId =>
                 {
-                    property.serializedObject.Update();
-                    property.stringValue = selectedId;
-                    property.serializedObject.ApplyModifiedProperties();
+                    targetStringProp.serializedObject.Update();
+                    targetStringProp.stringValue = selectedId;
+                    targetStringProp.serializedObject.ApplyModifiedProperties();
                 });
 
-                dropdown.Show(buttonRect);
+                dropdown.Show(contentRect);
             }
 
-            GUI.backgroundColor = prevBg;
+            GUI.backgroundColor = oldBg;
             EditorGUI.EndProperty();
         }
 
@@ -94,29 +95,23 @@ namespace Yasin.AudioSystem.Editor
             _lastCacheTime = EditorApplication.timeSinceStartup;
             CachedSoundIds.Clear();
 
-            // 1. AudioCatalog varlığını bul
             string[] guids = AssetDatabase.FindAssets("t:AudioCatalog");
             for (int i = 0; i < guids.Length; i++)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guids[i]);
-                var catalog = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+                AudioCatalog catalog = AssetDatabase.LoadAssetAtPath<AudioCatalog>(path);
                 if (catalog == null) continue;
 
-                var so = new SerializedObject(catalog);
-                var entriesProp = so.FindProperty("entries");
-                if (entriesProp != null && entriesProp.isArray)
+                IReadOnlyList<AudioCatalog.Entry> entries = catalog.Entries;
+                for (int j = 0; j < entries.Count; j++)
                 {
-                    for (int j = 0; j < entriesProp.arraySize; j++)
+                    AudioCatalog.Entry entry = entries[j];
+                    if (entry != null && !string.IsNullOrWhiteSpace(entry.id))
                     {
-                        var entryProp = entriesProp.GetArrayElementAtIndex(j);
-                        var idProp = entryProp.FindPropertyRelative("id");
-                        if (idProp != null && !string.IsNullOrWhiteSpace(idProp.stringValue))
+                        string id = entry.id.Trim();
+                        if (!CachedSoundIds.Contains(id))
                         {
-                            string id = idProp.stringValue.Trim();
-                            if (!CachedSoundIds.Contains(id))
-                            {
-                                CachedSoundIds.Add(id);
-                            }
+                            CachedSoundIds.Add(id);
                         }
                     }
                 }
@@ -126,4 +121,3 @@ namespace Yasin.AudioSystem.Editor
         }
     }
 }
-
