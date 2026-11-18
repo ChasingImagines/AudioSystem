@@ -26,7 +26,7 @@ namespace Yasin.AudioSystem
         /// </summary>
         public SoundEmitter PlayUI(float volume = 1f, float pitch = 1f)
         {
-            return AudioSystemManager.PlayUI(soundId, volume, pitch);
+            return AudioSystem.PlayUI(soundId, volume, pitch);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace Yasin.AudioSystem
         /// </summary>
         public SoundEmitter Play(Vector3 position, float volume = 1f, float spatialBlend = 1f, float pitch = 1f)
         {
-            return AudioSystemManager.Play(soundId, position, volume, spatialBlend, pitch);
+            return AudioSystem.Play(soundId, position, volume, spatialBlend, pitch);
         }
 
         /// <summary>

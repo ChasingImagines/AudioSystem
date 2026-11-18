@@ -1,91 +1,80 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
+using UnityEngine.Audio;
 
 namespace Yasin.AudioSystem
 {
     [RequireComponent(typeof(AudioSource))]
     public class SoundEmitter : MonoBehaviour
     {
-        public SoundData Data { get; private set; }
         public LinkedListNode<SoundEmitter> Node { get; set; }
 
-        AudioSource audioSource;
-        Coroutine playingCoroutine;
+        private AudioSource _audioSource;
+        private Coroutine _playingCoroutine;
 
-        void Awake()
+        private void Awake()
         {
-            audioSource = gameObject.GetOrAdd<AudioSource>();
-        }
-
-        public void Initialize(SoundData data)
-        {
-            Data = data;
-
-            // resource alanına atama yaparak hem AudioClip hem Random Container çalmasını sağlıyoruz
-            audioSource.resource = data.audioResource;
-
-            audioSource.outputAudioMixerGroup = data.mixerGroup;
-            audioSource.loop = data.loop;
-            audioSource.playOnAwake = data.playOnAwake;
-
-            audioSource.mute = data.mute;
-            audioSource.bypassEffects = data.bypassEffects;
-            audioSource.bypassListenerEffects = data.bypassListenerEffects;
-            audioSource.bypassReverbZones = data.bypassReverbZones;
-
-            audioSource.priority = data.priority;
-            audioSource.volume = data.volume;
-            audioSource.pitch = data.pitch;
-            audioSource.panStereo = data.panStereo;
-            audioSource.spatialBlend = data.spatialBlend;
-            audioSource.reverbZoneMix = data.reverbZoneMix;
-            audioSource.dopplerLevel = data.dopplerLevel;
-            audioSource.spread = data.spread;
-
-            audioSource.minDistance = data.minDistance;
-            audioSource.maxDistance = data.maxDistance;
-
-            audioSource.ignoreListenerVolume = data.ignoreListenerVolume;
-            audioSource.ignoreListenerPause = data.ignoreListenerPause;
-
-            audioSource.rolloffMode = data.rolloffMode;
-        }
-
-        public void Play()
-        {
-            if (playingCoroutine != null)
+            _audioSource = GetComponent<AudioSource>();
+            if (_audioSource == null)
             {
-                StopCoroutine(playingCoroutine);
+                _audioSource = gameObject.AddComponent<AudioSource>();
+            }
+            _audioSource.playOnAwake = false;
+        }
+
+        public void Play(AudioResource resource, Vector3 position, float volume = 1f, float spatialBlend = 1f, float pitch = 1f, AudioMixerGroup mixerGroup = null, bool loop = false)
+        {
+            transform.position = position;
+            _audioSource.resource = resource;
+            _audioSource.volume = Mathf.Clamp01(volume);
+            _audioSource.spatialBlend = Mathf.Clamp01(spatialBlend);
+            _audioSource.pitch = pitch;
+            _audioSource.outputAudioMixerGroup = mixerGroup;
+            _audioSource.loop = loop;
+
+            if (_playingCoroutine != null)
+            {
+                StopCoroutine(_playingCoroutine);
             }
 
-            audioSource.Play();
-            playingCoroutine = StartCoroutine(WaitForSoundToEnd());
+            _audioSource.Play();
+
+            if (!loop)
+            {
+                _playingCoroutine = StartCoroutine(WaitForSoundToEnd());
+            }
         }
 
-        IEnumerator WaitForSoundToEnd()
+        private IEnumerator WaitForSoundToEnd()
         {
-            yield return null; // Kaynağın tetiklenmesi için bir frame bekle
-            yield return new WaitWhile(() => audioSource.isPlaying);
+            yield return null;
+            yield return new WaitWhile(() => _audioSource.isPlaying);
             Stop();
         }
 
         public void Stop()
         {
-            if (playingCoroutine != null)
+            if (_playingCoroutine != null)
             {
-                StopCoroutine(playingCoroutine);
-                playingCoroutine = null;
+                StopCoroutine(_playingCoroutine);
+                _playingCoroutine = null;
             }
 
-            audioSource.Stop();
+            if (_audioSource != null)
+            {
+                _audioSource.Stop();
+            }
+
             SoundManager.Instance.ReturnToPool(this);
         }
 
         public void WithRandomPitch(float min = -0.05f, float max = 0.05f)
         {
-            audioSource.pitch += Random.Range(min, max);
+            if (_audioSource != null)
+            {
+                _audioSource.pitch += Random.Range(min, max);
+            }
         }
     }
 }
