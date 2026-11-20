@@ -6,8 +6,8 @@ using UnityEngine.Audio;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Projedeki tüm AudioCatalog varlıklarını AudioRegistry (PreloadedAssets) ve isteğe bağlı dinamik kayıtlar üzerinden
-    /// indeksleyen, GUID + ID destekli merkezi ses veritabanı.
+    /// Central audio database indexing all AudioCatalog assets via AudioRegistry (PreloadedAssets)
+    /// and optional dynamic registrations, supporting both GUID and case-insensitive ID lookups.
     /// </summary>
     public static class AudioDatabase
     {
@@ -168,7 +168,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// DLC veya Addressables ile sonradan yüklenen ek bir AudioCatalog varlığını veritabanına kaydeder.
+        /// Dynamically registers an extra AudioCatalog loaded at runtime (e.g., via DLC or Addressables).
         /// </summary>
         public static void RegisterCatalog(AudioCatalog catalog)
         {
@@ -227,7 +227,7 @@ namespace Yasin.AudioSystem
                     }
                     else
                     {
-                        Debug.LogWarning($"[AudioSystem] Çakışan GUID tespit edildi: '{g}' ({catalog.name}/{e.id}). İlk katalog kaydı korundu.", catalog);
+                        Debug.LogWarning($"[AudioSystem] Duplicate GUID detected: '{g}' ({catalog.name}/{e.id}). Keeping first catalog entry.", catalog);
                     }
                 }
 
@@ -240,7 +240,7 @@ namespace Yasin.AudioSystem
                     }
                     else
                     {
-                        Debug.LogWarning($"[AudioSystem] Çakışan ses ID'si tespit edildi: '{id}' ({catalog.name}). İlk katalog kaydı korundu.", catalog);
+                        Debug.LogWarning($"[AudioSystem] Duplicate sound ID detected: '{id}' ({catalog.name}). Keeping first catalog entry.", catalog);
                     }
                 }
             }

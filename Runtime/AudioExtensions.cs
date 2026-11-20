@@ -10,7 +10,7 @@ namespace Yasin.AudioSystem
     public static class AudioExtensions
     {
         /// <summary>
-        /// [0, 1] aralığındaki lineer slider değerini Unity AudioMixer için logaritmik desibel (-80 dB .. 0 dB) değerine dönüştürür.
+        /// Converts a linear [0, 1] slider value into logarithmic decibels (-80 dB to 0 dB) for Unity AudioMixers.
         /// </summary>
         public static float ToLogarithmicVolume(this float sliderValue)
         {
@@ -18,7 +18,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// [0, 1] aralığındaki geçiş oranını insan kulağının algısına uygun logaritmik [0, 1] ölçeğine dönüştürür.
+        /// Converts a [0, 1] fade fraction into a logarithmic [0, 1] scale matching human loudness perception.
         /// </summary>
         public static float ToLogarithmicFraction(this float fraction)
         {

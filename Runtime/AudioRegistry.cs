@@ -6,8 +6,8 @@ using UnityEngine.Audio;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Projedeki tüm AudioCatalog varlıklarını ve varsayılan mikser/havuz ayarlarını tutan,
-    /// Unity'nin PreloadedAssets mekanizmasıyla oyun açılışında otomatik yüklenen merkezi proje kaydı.
+    /// Central project registry holding all AudioCatalog assets and default mixer/pool settings,
+    /// automatically loaded at startup via Unity's PreloadedAssets mechanism.
     /// </summary>
     [CreateAssetMenu(menuName = "AudioSystem/Audio Registry (Project Singleton)", fileName = "AudioRegistry", order = 0)]
     public sealed class AudioRegistry : ScriptableObject
@@ -15,11 +15,11 @@ namespace Yasin.AudioSystem
         public const string DefaultRegistryAssetPath = "Assets/AudioSystem/AudioRegistry.asset";
         public const string DefaultCatalogFolderPath = "Assets/AudioSystem/Catalogs";
 
-        [Header("Kataloglar")]
+        [Header("Catalogs")]
         [SerializeField] private string defaultCatalogFolder = DefaultCatalogFolderPath;
         [SerializeField] private List<AudioCatalog> catalogs = new List<AudioCatalog>();
 
-        [Header("Mikser & Ses Seviyesi Parametreleri")]
+        [Header("Mixer & Volume Parameters")]
         [SerializeField] private AudioMixer masterMixer;
         [SerializeField] private AudioMixerGroup defaultSfxMixerGroup;
         [SerializeField] private AudioMixerGroup defaultMusicMixerGroup;
@@ -27,7 +27,7 @@ namespace Yasin.AudioSystem
         [SerializeField] private string sfxVolumeParam = "SFXVolume";
         [SerializeField] private string musicVolumeParam = "MusicVolume";
 
-        [Header("Havuz (Pool) Ayarları")]
+        [Header("Pool Settings")]
         [Min(1)] [SerializeField] private int defaultPoolCapacity = 16;
         [Min(1)] [SerializeField] private int maxPoolSize = 64;
 

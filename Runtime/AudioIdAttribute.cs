@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// String alanları AudioCatalog içindeki geçerli ses kimliklerine (ID) bağlayan ve
-    /// Inspector'da fuzzy search destekli bir açılır menü (dropdown) sunan öznitelik (attribute).
+    /// Links string or AudioKey fields to valid AudioCatalog entries with a searchable Inspector dropdown
+    /// and optional prefix filtering.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
     public sealed class AudioIdAttribute : PropertyAttribute
@@ -18,4 +18,3 @@ namespace Yasin.AudioSystem
         }
     }
 }
-

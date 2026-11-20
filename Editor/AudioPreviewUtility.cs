@@ -11,7 +11,7 @@ using AudioAsset = UnityEngine.AudioClip;
 namespace Yasin.AudioSystem.Editor
 {
     /// <summary>
-    /// Unity Editör içinde (Play Mode olmadan) ses kliplerini güvenli yansımayla (reflection) dinlemek için yardımcı araç.
+    /// Reflection-based helper for previewing AudioClips inside the Unity Editor outside of Play Mode.
     /// </summary>
     public static class AudioPreviewUtility
     {
@@ -45,7 +45,7 @@ namespace Yasin.AudioSystem.Editor
             }
             catch
             {
-                // Farklı Unity sürümlerinde sessizce düş
+                // Ignore cleanly across Unity Editor version changes
             }
         }
 
@@ -60,7 +60,7 @@ namespace Yasin.AudioSystem.Editor
             AudioClip clip = asset as AudioClip;
             if (clip == null)
             {
-                Debug.Log($"[AudioSystem] '{asset.name}' bir AudioClip değil ({asset.GetType().Name}); doğrudan Edit Mode önizlemesi yalnızca AudioClip için desteklenir.", asset);
+                Debug.Log($"[AudioSystem] '{asset.name}' is not an AudioClip ({asset.GetType().Name}); direct Edit Mode preview is only supported for AudioClip assets.", asset);
                 return;
             }
 
@@ -77,7 +77,7 @@ namespace Yasin.AudioSystem.Editor
             }
             catch
             {
-                // Editör sürüm farklılıklarında hata fırlatma
+                // Ignore across Editor versions
             }
         }
 
@@ -90,7 +90,7 @@ namespace Yasin.AudioSystem.Editor
             }
             catch
             {
-                // Sessizce yoksay
+                // Ignore
             }
         }
     }

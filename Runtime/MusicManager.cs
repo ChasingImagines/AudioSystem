@@ -9,7 +9,7 @@ using AudioAsset = UnityEngine.AudioClip;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Arka plan müziklerini sabit 2 kaynaklı (ping-pong) sıfır GC logaritmik crossfade mimarisiyle yöneten motor.
+    /// Manages background music using a zero-GC dual-AudioSource ping-pong architecture with logarithmic crossfades.
     /// </summary>
     public class MusicManager : PersistentSingleton<MusicManager>
     {
@@ -100,7 +100,7 @@ namespace Yasin.AudioSystem
                     ? AudioRegistry.Active.DefaultMusicMixerGroup
                     : musicMixerGroup);
 
-            // Aynı parça zaten çalıyorsa (veya durdurulmak üzereyse) aynı kaynak üzerinden devam et
+            // Continue on the active source if the exact same track is already playing or paused
             if (_activeSource != null &&
                 _activeSource.GetAssignedAsset() == resource &&
                 (_activeSource.isPlaying || _isPaused))
@@ -128,7 +128,7 @@ namespace Yasin.AudioSystem
                 return;
             }
 
-            // Hızlı ardışık geçişlerde önceki fadingOut kaynağını anında kes (zombi müzik sızıntısını önler)
+            // Immediately stop any lingering fading-out source during rapid transitions to prevent zombie audio
             StopAndClearSource(_fadingOutSource);
 
             _fadingOutSource = _activeSource;

@@ -22,7 +22,7 @@ namespace Yasin.AudioSystem.Editor
     }
 
     /// <summary>
-    /// AudioKey ve [AudioId(filterPrefix)] alanları için prefix filtreli, gruplanmış fuzzy-search açılır menüsü.
+    /// Searchable, prefix-filtered, grouped dropdown menu for AudioKey and [AudioId(filterPrefix)] fields.
     /// </summary>
     public sealed class AudioIdDropdown : AdvancedDropdown
     {
@@ -59,15 +59,15 @@ namespace Yasin.AudioSystem.Editor
         protected override AdvancedDropdownItem BuildRoot()
         {
             string title = string.IsNullOrEmpty(_filterPrefix)
-                ? "Ses Kataloğu (Audio Catalog)"
-                : $"Ses Kataloğu (Filtre: {_filterPrefix}*)";
+                ? "Audio Catalog"
+                : $"Audio Catalog (Filter: {_filterPrefix}*)";
             AdvancedDropdownItem root = new AdvancedDropdownItem(title);
 
-            root.AddChild(new AudioDropdownItem("None (Boş Bırak)", string.Empty, string.Empty, isClearOption: true));
+            root.AddChild(new AudioDropdownItem("None (Clear)", string.Empty, string.Empty, isClearOption: true));
 
             if (_entries == null || _entries.Count == 0)
             {
-                root.AddChild(new AudioDropdownItem("(Katalogda ses bulunamadı)", string.Empty, string.Empty));
+                root.AddChild(new AudioDropdownItem("(No sounds found in any AudioCatalog)", string.Empty, string.Empty));
                 return root;
             }
 
@@ -111,7 +111,7 @@ namespace Yasin.AudioSystem.Editor
 
             if (matchedCount == 0 && !string.IsNullOrEmpty(_filterPrefix))
             {
-                root.AddChild(new AudioDropdownItem($"('{_filterPrefix}*' ile eşleşen ses bulunamadı)", string.Empty, string.Empty));
+                root.AddChild(new AudioDropdownItem($"(No sounds matching '{_filterPrefix}*')", string.Empty, string.Empty));
             }
 
             return root;

@@ -10,8 +10,7 @@ using AudioAsset = UnityEngine.AudioClip;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Projedeki seslerin ve müziklerin merkezi statik yönetim API'si.
-    /// Katalogdaki sesleri AudioKey (GUID/ID) veya string ID üzerinden sıfır GC SoundManager havuzu ile oynatır.
+    /// Central static facade for playing catalog SFX and background music via the zero-GC SoundManager pool and MusicManager.
     /// </summary>
     public static class AudioSystem
     {
@@ -22,7 +21,7 @@ namespace Yasin.AudioSystem
         public static void UnregisterCatalog(AudioCatalog catalog) => AudioDatabase.UnregisterCatalog(catalog);
 
         /// <summary>
-        /// Bir sesin herhangi bir katalogda tanımlı olup olmadığını kontrol eder.
+        /// Checks whether a sound ID exists in any registered AudioCatalog.
         /// </summary>
         public static bool HasSound(string soundId)
         {
@@ -35,7 +34,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// 2D / Arayüz (UI) sesi çalar.
+        /// Plays a 2D / UI sound by string ID.
         /// </summary>
         public static SoundHandle PlayUI(string soundId, float volumeScale = 1f, float pitchScale = 1f)
         {
@@ -48,7 +47,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// 3D uzamsal ses çalar (ID üzerinden).
+        /// Plays a 3D spatial sound by string ID.
         /// </summary>
         public static SoundHandle Play(
             string soundId,
@@ -63,7 +62,7 @@ namespace Yasin.AudioSystem
 
             if (!AudioDatabase.TryGetById(soundId, out AudioDatabase.ResolvedSound resolved))
             {
-                Debug.LogWarning($"[AudioSystem] '{soundId}' ID'li ses katalogda bulunamadı!");
+                Debug.LogWarning($"[AudioSystem] Sound ID '{soundId}' was not found in any AudioCatalog!");
                 return SoundHandle.Invalid;
             }
 
@@ -75,7 +74,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// 3D uzamsal ses çalar (AudioKey GUID/ID üzerinden).
+        /// Plays a 3D spatial sound via AudioKey (GUID/ID).
         /// </summary>
         public static SoundHandle Play(
             AudioKey key,
@@ -90,7 +89,7 @@ namespace Yasin.AudioSystem
 
             if (!AudioDatabase.TryResolve(key, out AudioDatabase.ResolvedSound resolved))
             {
-                Debug.LogWarning($"[AudioSystem] '{key}' anahtarına karşılık gelen ses katalogda bulunamadı!");
+                Debug.LogWarning($"[AudioSystem] Sound key '{key}' was not found in any AudioCatalog!");
                 return SoundHandle.Invalid;
             }
 
@@ -107,7 +106,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Katalogdaki bir AudioKey üzerinden arka plan müziği başlatır (Logaritmik Crossfade geçişli).
+        /// Plays background music from an AudioKey with a logarithmic crossfade.
         /// </summary>
         public static void PlayMusic(AudioKey key, float fadeDuration = 1f, bool loop = true, float volumeScale = 1f)
         {
@@ -116,14 +115,14 @@ namespace Yasin.AudioSystem
 
             if (!AudioDatabase.TryResolve(key, out AudioDatabase.ResolvedSound resolved))
             {
-                Debug.LogWarning($"[AudioSystem] '{key}' müzik anahtarı katalogda bulunamadı!");
+                Debug.LogWarning($"[AudioSystem] Music key '{key}' was not found in any AudioCatalog!");
                 return;
             }
 
             AudioAsset resource = resolved.Entry.ResolveResource();
             if (resource == null)
             {
-                Debug.LogWarning($"[AudioSystem] '{key}' müzik girişinin Resource/AudioClip ataması boş!");
+                Debug.LogWarning($"[AudioSystem] Music entry '{key}' has no audio asset assigned!");
                 return;
             }
 
@@ -133,7 +132,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Katalogdaki bir ID üzerinden arka plan müziği başlatır (Logaritmik Crossfade geçişli).
+        /// Plays background music from a string ID with a logarithmic crossfade.
         /// </summary>
         public static void PlayMusic(string soundId, float fadeDuration = 1f, bool loop = true, float volumeScale = 1f)
         {
@@ -142,14 +141,14 @@ namespace Yasin.AudioSystem
 
             if (!AudioDatabase.TryGetById(soundId, out AudioDatabase.ResolvedSound resolved))
             {
-                Debug.LogWarning($"[AudioSystem] '{soundId}' ID'li müzik katalogda bulunamadı!");
+                Debug.LogWarning($"[AudioSystem] Music ID '{soundId}' was not found in any AudioCatalog!");
                 return;
             }
 
             AudioAsset resource = resolved.Entry.ResolveResource();
             if (resource == null)
             {
-                Debug.LogWarning($"[AudioSystem] '{soundId}' müzik girişinin Resource/AudioClip ataması boş!");
+                Debug.LogWarning($"[AudioSystem] Music entry '{soundId}' has no audio asset assigned!");
                 return;
             }
 
@@ -159,7 +158,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Doğrudan AudioClip / Unity 6 AudioResource üzerinden arka plan müziği başlatır.
+        /// Plays background music directly from an AudioClip or Unity 6 AudioResource.
         /// </summary>
         public static void PlayMusic(
             AudioAsset musicResource,
@@ -179,7 +178,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Çalan arka plan müziğini yumuşakça durdurur.
+        /// Smoothly fades out and stops the active background music.
         /// </summary>
         public static void StopMusic(float fadeDuration = 1f)
         {
@@ -201,7 +200,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// O an çalan tüm ses efektlerini durdurur.
+        /// Stops all currently playing sound effects immediately.
         /// </summary>
         public static void StopAllSounds()
         {

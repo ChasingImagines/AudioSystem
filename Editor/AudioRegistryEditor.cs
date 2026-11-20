@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Yasin.AudioSystem.Editor
 {
     /// <summary>
-    /// AudioRegistry için PreloadedAssets durumunu gösteren ve tek tıkla katalog senkronizasyonu sağlayan Editör arayüzü.
+    /// Custom Inspector for AudioRegistry showing PreloadedAssets status and one-click catalog synchronization.
     /// </summary>
     [CustomEditor(typeof(AudioRegistry))]
     public sealed class AudioRegistryEditor : UnityEditor.Editor
@@ -23,17 +23,17 @@ namespace Yasin.AudioSystem.Editor
             if (isPreloaded)
             {
                 EditorGUILayout.HelpBox(
-                    "✅ Bu AudioRegistry varlığı PlayerSettings > Preloaded Assets içinde kayıtlı.\n" +
-                    "Build ortamında tüm AudioCatalog varlıkları (hangi klasörde olursa olsun) otomatik yüklenir.",
+                    "✅ This AudioRegistry asset is registered in PlayerSettings > Preloaded Assets.\n" +
+                    "All AudioCatalog assets (regardless of folder) will load automatically in Player Builds.",
                     MessageType.Info);
             }
             else
             {
                 EditorGUILayout.HelpBox(
-                    "⚠️ Bu AudioRegistry henüz PlayerSettings > Preloaded Assets listesinde değil. Player Build'lerde seslerin çalışması için ekleyin.",
+                    "⚠️ This AudioRegistry is not yet in PlayerSettings > Preloaded Assets. Add it so audio catalogs load in Player Builds.",
                     MessageType.Warning);
 
-                if (GUILayout.Button("📌 Preloaded Assets'e Ekle", GUILayout.Height(26f)))
+                if (GUILayout.Button("📌 Add to Preloaded Assets", GUILayout.Height(26f)))
                 {
                     AudioRegistryUtility.EnsurePreloaded(registry);
                 }
@@ -41,7 +41,7 @@ namespace Yasin.AudioSystem.Editor
 
             EditorGUILayout.Space(4f);
 
-            if (GUILayout.Button("🔍 Projedeki Tüm Katalogları Senkronize Et", GUILayout.Height(30f)))
+            if (GUILayout.Button("🔍 Sync All Catalogs in Project", GUILayout.Height(30f)))
             {
                 AudioRegistryUtility.SyncAllCatalogs(createRegistryIfCatalogsExist: true, saveAssets: true);
                 serializedObject.Update();
@@ -55,7 +55,7 @@ namespace Yasin.AudioSystem.Editor
     }
 
     /// <summary>
-    /// AudioRegistry varlığını yöneten, PreloadedAssets kaydını koruyan ve çapraz katalog GUID/ID çakışmalarını onaran yardımcı sınıf.
+    /// Manages the AudioRegistry asset, maintains PreloadedAssets registration, and repairs cross-catalog GUID collisions.
     /// </summary>
     public static class AudioRegistryUtility
     {
@@ -298,7 +298,7 @@ namespace Yasin.AudioSystem.Editor
                     anyModified = true;
                     catalog.RebuildLookups();
                     EditorUtility.SetDirty(catalog);
-                    Debug.Log($"[AudioSystem] '{catalog.name}' içindeki çakışan/kopyalanmış ses GUID'leri otomatik olarak yenilendi.", catalog);
+                    Debug.Log($"[AudioSystem] Automatically regenerated colliding/duplicated audio GUIDs inside '{catalog.name}'.", catalog);
                 }
             }
             return anyModified;
@@ -326,8 +326,7 @@ namespace Yasin.AudioSystem.Editor
     }
 
     /// <summary>
-    /// Projede yeni bir AudioCatalog oluşturulduğunda, çoğaltıldığında, silindiğinde veya taşındığında
-    /// önbelleği temizleyen ve AudioRegistry'yi gecikmeli (delayCall) güncelleyen otomatik dinleyici.
+    /// Automatically invalidates caches and schedules a delayed AudioRegistry sync when AudioCatalog assets are created, duplicated, deleted, or moved.
     /// </summary>
     public sealed class AudioAssetPostprocessor : AssetPostprocessor
     {
@@ -425,8 +424,7 @@ namespace Yasin.AudioSystem.Editor
     }
 
     /// <summary>
-    /// Player Build başlamadan önce tüm AudioCatalog varlıklarının AudioRegistry ve PreloadedAssets içine
-    /// senkronize edildiğini garantiye alan derleme öncesi doğrulayıcı.
+    /// Ensures all AudioCatalog assets are synced into AudioRegistry and PreloadedAssets before every Player Build.
     /// </summary>
     public sealed class AudioBuildPreprocessor : IPreprocessBuildWithReport
     {
@@ -442,7 +440,7 @@ namespace Yasin.AudioSystem.Editor
                 AudioRegistry registry = AudioRegistryUtility.FindRegistry();
                 if (registry == null || !AudioRegistryUtility.IsInPreloadedAssets(registry))
                 {
-                    throw new BuildFailedException("[AudioSystem] AudioRegistry varlığı PreloadedAssets içine kaydedilemedi.");
+                    throw new BuildFailedException("[AudioSystem] Failed to register AudioRegistry in PlayerSettings > Preloaded Assets.");
                 }
             }
         }

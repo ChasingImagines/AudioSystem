@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Inspector dostu, GUID ve ID destekli tip güvenli ses referansı anahtarı.
-    /// Katalogda ses adı değişse bile GUID üzerinden bağlantı kopmaz; kodda string ID ile de çalışır.
+    /// Inspector-friendly, strongly-typed sound reference key backed by both GUID and readable ID.
+    /// Survives sound ID renames in catalogs via GUID while also supporting raw string IDs in code.
     /// </summary>
     [Serializable]
     public struct AudioKey : IEquatable<AudioKey>
@@ -30,7 +30,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Bu anahtara bağlı sesi 2D (UI) olarak çalar.
+        /// Plays this sound as a 2D UI sound.
         /// </summary>
         public SoundHandle PlayUI(float volumeScale = 1f, float pitchScale = 1f)
         {
@@ -38,7 +38,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Bu anahtara bağlı sesi 3D uzamsal olarak dünya pozisyonunda çalar.
+        /// Plays this sound as a 3D spatial sound at the given world position.
         /// </summary>
         public SoundHandle Play(
             Vector3 position,
@@ -51,7 +51,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Konum verilmediğinde varsayılan olarak 2D UI sesi çalar.
+        /// Plays this sound as a 2D UI sound when no position is specified.
         /// </summary>
         public SoundHandle Play()
         {
@@ -59,7 +59,7 @@ namespace Yasin.AudioSystem
         }
 
         /// <summary>
-        /// Bu anahtara bağlı ses varlığını arka plan müziği olarak çalar.
+        /// Plays this catalog entry as background music with a logarithmic crossfade.
         /// </summary>
         public void PlayMusic(float fadeDuration = 1f, bool loop = true, float volumeScale = 1f)
         {

@@ -12,7 +12,7 @@ using AudioAsset = UnityEngine.AudioClip;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// AudioSource havuzunu (SoundEmitter Pool), sıfır GC yaşam döngüsünü, cooldown ve eşzamanlı örnek sınırlarını yöneten ana ses motoru.
+    /// Manages the AudioSource pool (SoundEmitter pool), zero-GC playback lifecycle, cooldowns, and concurrency limits.
     /// </summary>
     public class SoundManager : PersistentSingleton<SoundManager>
     {
@@ -179,7 +179,7 @@ namespace Yasin.AudioSystem
             AudioAsset resource = entry.ResolveResource();
             if (resource == null)
             {
-                Debug.LogWarning($"[AudioSystem] '{entry.id}' sesinin Resource/AudioClip ataması boş!");
+                Debug.LogWarning($"[AudioSystem] Sound '{entry.id}' has no audio asset assigned!");
                 return SoundHandle.Invalid;
             }
 

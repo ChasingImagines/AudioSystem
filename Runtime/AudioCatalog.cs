@@ -11,8 +11,8 @@ using AudioAsset = UnityEngine.AudioClip;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Projedeki ses kimliklerini AudioClip veya Unity 6 AudioResource varlıklarına eşleyen ScriptableObject.
-    /// GUID tabanlı kopmayan referanslar, varsayılan mikser yönlendirmesi ve spam/örnek sayısı sınırları sunar.
+    /// ScriptableObject mapping audio IDs to AudioClip or Unity 6 AudioResource assets.
+    /// Provides GUID-safe references, default mixer routing, and cooldown/concurrency protection.
     /// </summary>
     [CreateAssetMenu(menuName = "AudioSystem/Audio Catalog", fileName = "NewAudioCatalog", order = 10)]
     public sealed class AudioCatalog : ScriptableObject
@@ -20,19 +20,19 @@ namespace Yasin.AudioSystem
         [Serializable]
         public sealed class Entry
         {
-            [Tooltip("Kırılmaz ses kimliği (GUID). Ses ID'si değişse bile AudioKey referansları bozulmaz.")]
+            [Tooltip("Immutable unique identifier (GUID). AudioKey references stay intact even if the ID is renamed.")]
             public string guid;
 
-            [Tooltip("Sesin okunabilir benzersiz kimliği (Örn: player_jump, ui_click).")]
+            [Tooltip("Human-readable unique sound ID (e.g., player_jump, ui_click).")]
             public string id;
 
-            [Tooltip("Oynatılacak ses varlığı (Unity 2021/2022'de AudioClip, Unity 6'da AudioResource/AudioRandomContainer).")]
+            [Tooltip("Audio asset to play (AudioClip on Unity 2021/2022, or AudioResource/AudioRandomContainer on Unity 6).")]
             public AudioAsset resource;
 
-            [Tooltip("Bu ses için özel AudioMixerGroup (atanmazsa kataloğun varsayılan mikser grubu kullanılır).")]
+            [Tooltip("Optional AudioMixerGroup override for this sound (falls back to the catalog's DefaultMixerGroup when unassigned).")]
             public AudioMixerGroup mixerGroup;
 
-            [Header("Oynatma Ayarları")]
+            [Header("Playback Settings")]
             [Range(0f, 1f)] public float volume = 1f;
             [Range(0.1f, 3f)] public float pitch = 1f;
             [Range(0f, 0.5f)] public float pitchVariance = 0f;
@@ -41,21 +41,21 @@ namespace Yasin.AudioSystem
             [Min(0.1f)] public float maxDistance = 50f;
             public bool loop = false;
 
-            [Header("Spam & Eşzamanlılık Koruması")]
-            [Tooltip("Aynı sesin art arda tetiklenmesi arasındaki minimum süre (saniye). 0 = sınırsız.")]
+            [Header("Spam & Concurrency Limits")]
+            [Tooltip("Minimum interval in seconds before this sound can trigger again. 0 = unlimited.")]
             [Min(0f)] public float cooldown = 0f;
 
-            [Tooltip("Aynı anda çalabilecek maksimum kopya sayısı. 0 = sınırsız.")]
+            [Tooltip("Maximum number of simultaneous active instances allowed. 0 = unlimited.")]
             [Min(0)] public int maxConcurrentInstances = 0;
 
             public AudioAsset ResolveResource() => resource;
         }
 
-        [Header("Mikser Yönlendirmesi")]
-        [Tooltip("Bu katalogdaki seslerin varsayılan olarak yönlendirileceği AudioMixerGroup.")]
+        [Header("Mixer Routing")]
+        [Tooltip("Default AudioMixerGroup used by entries in this catalog unless overridden per entry.")]
         [SerializeField] private AudioMixerGroup defaultMixerGroup;
 
-        [Header("Ses Listesi")]
+        [Header("Sound Entries")]
         [SerializeField] private List<Entry> entries = new List<Entry>();
 
         [NonSerialized] private readonly Dictionary<string, Entry> _byId = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);

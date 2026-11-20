@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Yasin.AudioSystem
 {
     /// <summary>
-    /// Havuzdaki aktif bir ses oynatımını jenerasyon (generation) kimliğiyle güvenle kontrol eden tutamaç.
-    /// Ses havuza döndükten sonra eski tutamaç üzerinden yapılan Stop/SetVolume çağrıları yeni sesi bozmaz.
+    /// Generation-checked handle for controlling an active pooled sound playback safely.
+    /// Once the emitter returns to the pool, calls through stale handles are safely ignored.
     /// </summary>
     public readonly struct SoundHandle : IEquatable<SoundHandle>
     {

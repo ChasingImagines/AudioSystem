@@ -12,8 +12,8 @@ using AudioAsset = UnityEngine.AudioClip;
 namespace Yasin.AudioSystem.Editor
 {
     /// <summary>
-    /// AudioKey alanlarını ve [AudioId(filterPrefix)] etiketli string/AudioKey alanlarını Inspector'da
-    /// prefix filtreli açılır menü, GUID/case-insensitive doğrulama ve tek tıkla önizleme butonu ile çizer.
+    /// PropertyDrawer for AudioKey and [AudioId(filterPrefix)] string/AudioKey fields, featuring
+    /// prefix-filtered dropdown selection, GUID/case-insensitive validation, and an Edit Mode preview button.
     /// </summary>
     [CustomPropertyDrawer(typeof(AudioKey))]
     [CustomPropertyDrawer(typeof(AudioIdAttribute))]
@@ -93,13 +93,13 @@ namespace Yasin.AudioSystem.Editor
             string buttonText;
             if (hasMixed)
             {
-                buttonText = "— (Karışık Değerler) —";
+                buttonText = "— (Mixed Values) —";
             }
             else if (isEmpty)
             {
                 buttonText = string.IsNullOrEmpty(filterPrefix)
-                    ? "— (Ses Seçin) —"
-                    : $"— (Ses Seçin: {filterPrefix}*) —";
+                    ? "— (Select Sound) —"
+                    : $"— (Select: {filterPrefix}*) —";
             }
             else if (isValid)
             {
@@ -108,7 +108,7 @@ namespace Yasin.AudioSystem.Editor
             else
             {
                 string fallbackLabel = !string.IsNullOrWhiteSpace(currentId) ? currentId : currentGuid;
-                buttonText = $"⚠️ {fallbackLabel} (Katalogda Yok!)";
+                buttonText = $"⚠️ {fallbackLabel} (Not in Catalog!)";
             }
 
             Color oldBg = GUI.backgroundColor;
@@ -167,7 +167,7 @@ namespace Yasin.AudioSystem.Editor
             AudioAsset previewAsset = isValid ? resolved.Asset as AudioAsset : null;
             using (new EditorGUI.DisabledScope(!isValid || previewAsset == null))
             {
-                if (GUI.Button(previewRect, new GUIContent("▶", "Editörde Sesi Dinle (Önizle)")))
+                if (GUI.Button(previewRect, new GUIContent("▶", "Preview Sound in Editor")))
                 {
                     AudioPreviewUtility.PlayPreview(previewAsset);
                 }

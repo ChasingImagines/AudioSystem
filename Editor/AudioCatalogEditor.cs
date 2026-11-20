@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Yasin.AudioSystem.Editor
 {
     /// <summary>
-    /// AudioCatalog ScriptableObject varlıkları için özet bilgi, çakışan ID uyarıları ve Edit Mode ses önizleme kontrolleri sunan Editör.
+    /// Custom Inspector for AudioCatalog ScriptableObjects providing catalog summaries, duplicate ID warnings, and Edit Mode audio previews.
     /// </summary>
     [CustomEditor(typeof(AudioCatalog))]
     public sealed class AudioCatalogEditor : UnityEditor.Editor
@@ -60,10 +60,10 @@ namespace Yasin.AudioSystem.Editor
             int count = catalog.Entries != null ? catalog.Entries.Count : 0;
             using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.LabelField($"🎵 {catalog.name}  ({count} Ses)", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"🎵 {catalog.name}  ({count} Sounds)", EditorStyles.boldLabel);
                 GUILayout.FlexibleSpace();
 
-                if (GUILayout.Button("⏹ Önizlemeyi Durdur", EditorStyles.miniButton, GUILayout.Width(130f)))
+                if (GUILayout.Button("⏹ Stop Preview", EditorStyles.miniButton, GUILayout.Width(110f)))
                 {
                     AudioPreviewUtility.StopPreview();
                 }
@@ -109,18 +109,18 @@ namespace Yasin.AudioSystem.Editor
                 string id = entry.id.Trim();
                 if (!localIds.Add(id))
                 {
-                    _duplicateWarnings.Add($"• Bu katalog içinde tekrarlanan ID: '{id}'");
+                    _duplicateWarnings.Add($"• Duplicate ID within this catalog: '{id}'");
                 }
                 else if (otherCatalogIds.Contains(id))
                 {
-                    _duplicateWarnings.Add($"• Başka bir katalogda da tanımlı ID: '{id}'");
+                    _duplicateWarnings.Add($"• ID also defined in another catalog: '{id}'");
                 }
             }
 
             if (_duplicateWarnings.Count > 0)
             {
                 EditorGUILayout.HelpBox(
-                    "⚠️ Çakışan Ses ID'leri Tespit Edildi:\n" + string.Join("\n", _duplicateWarnings),
+                    "⚠️ Duplicate Sound IDs Detected:\n" + string.Join("\n", _duplicateWarnings),
                     MessageType.Warning);
             }
         }
@@ -130,7 +130,7 @@ namespace Yasin.AudioSystem.Editor
             if (catalog.Entries == null || catalog.Entries.Count == 0)
                 return;
 
-            _showPreviewBar = EditorGUILayout.Foldout(_showPreviewBar, "🔊 Hızlı Ses Önizleme (Edit Mode)", true);
+            _showPreviewBar = EditorGUILayout.Foldout(_showPreviewBar, "🔊 Quick Sound Preview (Edit Mode)", true);
             if (!_showPreviewBar)
                 return;
 
@@ -142,7 +142,7 @@ namespace Yasin.AudioSystem.Editor
                     if (entry == null)
                         continue;
 
-                    string displayId = string.IsNullOrWhiteSpace(entry.id) ? $"(Adsız #{i})" : entry.id;
+                    string displayId = string.IsNullOrWhiteSpace(entry.id) ? $"(Unnamed #{i})" : entry.id;
                     var asset = entry.ResolveResource();
 
                     using (new EditorGUILayout.HorizontalScope())
