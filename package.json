@@ -1,6 +1,6 @@
 {
   "name": "com.yasin.audiosystem",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "displayName": "AudioSystem - Catalog-Driven Sound Engine",
   "description": "Strict, catalog-driven, high-performance sound and music management system with pooling, spatial blending and inspector searchable dropdowns for Unity.",
   "unity": "2021.3",

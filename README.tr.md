@@ -1,17 +1,18 @@
 # AudioSystem for Unity (Türkçe Dokümantasyon)
 
-**AudioSystem**, Unity projelerinde sesleri mantıksal kataloglar halinde düzenleyen, tip güvenli (`AudioKey`) erişim sağlayan ve arka planda AudioSource havuzu (pooling) ile sesleri oynatan hafif bir ses yönetim paketidir.
+**AudioSystem**, Unity projelerinde (Unity 2021.3 – Unity 6 arası tüm sürümler) sesleri modüler kataloglar halinde düzenleyen, `PreloadedAssets` tabanlı `AudioRegistry` ile Build ortamında otomatik çalışan, sıfır GC (Zero-GC) havuzlama ve jenerasyon güvenli `SoundHandle` sunan ses ve müzik motorudur.
 
 ---
 
-## 🎯 Ne İşe Yarar? (Temel Amacı)
+## 🎯 Temel Özellikler (v2.0)
 
-Büyük projelerde ses kliplerini scriptlerin veya prefab'ların içine dağınık şekilde bağlamak yönetimi zorlaştırır. AudioSystem bu süreci şu şekilde çözer:
-
-1. **Kataloglama:** Sesleri kategorilerine göre ScriptableObject kataloglarında toplarsınız (örn: `PlayerAudioCatalog`, `UIAudioCatalog`). Bir sesi veya mikser grubunu değiştirmek istediğinizde prefab gezmez, doğrudan katalogdan değiştirirsiniz.
-2. **Tip Güvenli `AudioKey`:** Kod tarafında string ile `"jump"` yazmak yerine `AudioKey` kullanılır. Bu sayede yazım hatası (typo) riski olmaz. Inspector'da tüm katalogları tarayan arama kutulu bir açılır liste çıkar.
-3. **Otomatik Havuzlama (Zero-GC Pooling):** Çalınan her ses için yeni `GameObject` oluşturulup yok edilmez; arka planda dinamik bir `SoundEmitter` havuzu çalışır.
-4. **Resources veya Sürükle-Bırak Gerektirmez:** Katalogları bir veritabanına elle eklemeniz veya `Resources` klasörü açmanız gerekmez. Editör projedeki tüm `AudioCatalog` dosyalarını otomatik olarak tanır.
+1. **Sıfır Sahne Kurulumu & Build Garantisi:** `AudioCatalog` dosyalarınızı `Assets/` altında istediğiniz herhangi bir klasöre koyabilirsiniz. `Resources` klasörü gerekmez; `AudioRegistry` katalogları otomatik toplar, `PlayerSettings > Preloaded Assets` listesine ekler ve build öncesi `IPreprocessBuildWithReport` ile doğrular.
+2. **Unity 2021.3 – Unity 6 Uyumlu:** Unity 2021.3/2022.3'te `AudioClip`, Unity 6'da (`UNITY_6000_0_OR_NEWER`) ise `AudioResource` / `AudioRandomContainer` ile tam uyumlu çalışır.
+3. **GUID Korumalı `AudioKey` & `[AudioId("...")]` Filtreleme:** `AudioKey` sesleri değiştirilemez GUID ile tutar (isim değişse bile sahne/prefab bağlantısı kopmaz; büyük/küçük harf duyarsızdır). `[AudioId("ui_")]` özniteliği hem `string` hem `AudioKey` alanlarında açılır listeyi prefix ile filtreler.
+4. **Gerçek Zero-GC Havuzlama & `SoundHandle`:** Coroutine/`WaitWhile` tahsisi yoktur; `AudioListener.pause` / odak kaybında sesleri kesmez; jenerasyon korumalı `SoundHandle` ile `Stop()`, `Pause()`, `Resume()`, `SetVolume()`, `Follow()` kontrolü verir.
+5. **Giriş Bazlı Ayarlar, Cooldown & Örnek Limiti:** Her ses için `volume`, `pitch`, `pitchVariance`, `spatialBlend`, `minDistance`/`maxDistance`, `loop`, `cooldown` ve `maxConcurrentInstances` tanımlanabilir. Mikser yönlendirmesi otomatik zincir izler (`Entry.mixerGroup` → `Catalog.defaultMixerGroup` → `AudioRegistry.defaultSfxMixerGroup`).
+6. **2 Kaynaklı Ping-Pong `MusicManager`:** Sabit 2 `AudioSource` ile sıfır bileşen sızıntısı ve logaritmik crossfade sunar; hem `AudioKey` hem `AudioClip`/`AudioResource` çalabilir.
+7. **Mikser Ses Kontrolü & Editör Önizleme:** `SetMasterVolume`, `SetSFXVolume`, `SetMusicVolume` (`ToLogarithmicVolume`) ve Inspector içinden tek tıkla `▶` ses önizleme butonu içerir.
 
 ---
 
@@ -28,18 +29,13 @@ Büyük projelerde ses kliplerini scriptlerin veya prefab'ların içine dağın�
 
 ## 🚀 Kullanım Rehberi
 
-### 1. Ses Kataloğu (AudioCatalog) Oluşturma
-Project penceresinde istediğiniz bir klasörde sağ tıklayın:
+### 1. Ses Kataloğu (`AudioCatalog`) Oluşturma
+Project penceresinde `Assets/` altında istediğiniz herhangi bir klasörde sağ tıklayın:
 > **`Create > AudioSystem > Audio Catalog`**
 
-Örn: `PlayerSounds.asset` adını verin ve içine sesleri ekleyin:
-- **ID:** `jump`, `footstep`, `attack`
-- **Resource:** Unity 6 `AudioClip` veya `AudioRandomContainer` dosyasını atayın.
-- **Mixer Group:** İsteğe bağlı olarak ilgili ses mikserini bağlayın.
+`AudioRegistry` otomatik olarak kataloğu kaydedip Build ayarlarına bağlar. İçine seslerinizi (`player_jump`, `ui_click`, `bgm_boss`) ve mikser/cooldown ayarlarını ekleyin.
 
----
-
-### 2. Inspector'da Ses Tanımlama (`AudioKey`)
+### 2. Inspector'da Ses Tanımlama (`AudioKey` ve `[AudioId]`)
 
 ```csharp
 using UnityEngine;
@@ -47,23 +43,20 @@ using Yasin.AudioSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
-    // Inspector'da tüm kataloglardaki sesleri listeleyen arama kutulu açılır menü çıkar
     [SerializeField] private AudioKey attackSound;
+
+    // İsteğe bağlı önek filtreleme (AudioKey veya string üzerinde çalışır):
+    [AudioId("ui_"), SerializeField] private AudioKey uiConfirmSound;
 
     public void Attack()
     {
-        // 1. Yol: Doğrudan key üzerinden çalma:
-        attackSound.Play(transform.position);
-
-        // 2. Yol: AudioSystem üzerinden çalma:
-        AudioSystem.Play(attackSound, transform.position);
+        SoundHandle handle = attackSound.Play(transform.position);
+        handle.Follow(transform);
     }
 }
 ```
 
----
-
-### 3. C# Kodundan Ses Çalma (`AudioSystem.`)
+### 3. Oynatma & Mikser Kontrolü (`AudioSystem`)
 
 ```csharp
 using UnityEngine;
@@ -73,30 +66,26 @@ public class AudioManagerExample : MonoBehaviour
 {
     [SerializeField] private AudioKey uiClickSound;
     [SerializeField] private AudioKey explosionSound;
-    [SerializeField] private AudioClip backgroundMusic;
+    [SerializeField] private AudioKey battleTheme;
 
     void Start()
     {
-        // 1. 2D / UI Sesi Çalma:
+        // 1. 2D / UI Sesi:
         AudioSystem.PlayUI(uiClickSound);
 
-        // 2. 3D Uzamsal Ses Çalma (Konum, Ses Seviyesi, Pitch):
-        AudioSystem.Play(explosionSound, transform.position, volume: 0.9f, pitch: 1.1f);
+        // 2. 3D Uzamsal Ses:
+        SoundHandle handle = AudioSystem.Play(explosionSound, transform.position, volumeScale: 0.9f, pitchScale: 1.05f);
 
-        // 3. Arka Plan Müziği (Crossfade geçişi ile):
-        AudioSystem.PlayMusic(backgroundMusic, fadeDuration: 1.5f, loop: true);
+        // 3. Arka Plan Müziği (AudioKey veya AudioClip/AudioResource ile logaritmik crossfade):
+        AudioSystem.PlayMusic(battleTheme, fadeDuration: 1.5f, loop: true);
 
-        // 4. Müziği Durdurma:
+        // 4. Mikser Ses Seviyeleri ve Durdurma:
+        AudioSystem.SetMasterVolume(0.8f);
         AudioSystem.StopMusic(fadeDuration: 1f);
-
-        // 5. Tüm Çalan Sesleri Durdurma:
         AudioSystem.StopAllSounds();
     }
 }
 ```
-
----
-
 
 ---
 

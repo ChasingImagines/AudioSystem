@@ -6,18 +6,19 @@
 
 [🇹🇷 Türkçe Dokümantasyon için tıklayın (README.tr.md)](README.tr.md)
 
-**AudioSystem** is a catalog-driven, high-performance sound and music management engine for Unity featuring dynamic AudioSource pooling, spatial blending, and strongly-typed `AudioKey` inspector dropdowns.
+**AudioSystem** is a catalog-driven, zero-GC, high-performance sound and music management engine for Unity (supporting Unity 2021.3 through Unity 6) featuring `AudioRegistry` PreloadedAssets discovery, dynamic `AudioSource` pooling with generation-safe `SoundHandle`s, ping-pong BGM crossfades, and GUID-safe `AudioKey` inspector dropdowns.
 
 ---
 
 ## 🎯 Key Features
 
-- **Catalog-Driven Architecture:** Organize sound clips, random containers, and volume/mixer routing inside modular `AudioCatalog` ScriptableObjects instead of scattering clip references across prefabs.
-- **Type-Safe `AudioKey`:** Replace fragile magic strings with `AudioKey` structs in your components. Enjoy searchable, categorized inspector dropdowns with instant validation.
-- **Zero-GC AudioSource Pooling:** Audio playback never instantiates or destroys GameObjects during gameplay; an internal `SoundEmitter` pool handles 2D/3D playback efficiently.
-- **No Resources Setup Required:** Catalogs are automatically discovered across the project at runtime and in editor without needing manual database drag-and-drop or `Resources` folders.
-- **BGM Crossfade & Transitions:** Built-in `MusicManager` supports smooth asynchronous volume fades and crossfades.
-- **Unity 6 AudioResource Ready:** Fully supports both legacy `AudioClip` and new Unity 6 `AudioResource` / `AudioRandomContainer` assets.
+- **Zero Scene Setup & Build-Safe Discovery:** Place `AudioCatalog` assets anywhere under `Assets/`. `AudioRegistry` automatically synchronizes catalogs via `PreloadedAssets` and verifies everything before builds via `IPreprocessBuildWithReport`—no `Resources` folder or scene manager setup required.
+- **Unity 2021.3 – Unity 6 Compatible:** Uses `AudioClip` on Unity 2021.3/2022.3 and `AudioResource` / `AudioRandomContainer` on Unity 6 (`UNITY_6000_0_OR_NEWER`).
+- **GUID-Safe `AudioKey` & `[AudioId]` Filtering:** `AudioKey` binds by immutable GUID (falling back to case-insensitive string ID), so renaming a sound in a catalog never breaks scene or prefab references. Use `[AudioId("ui_")]` on `string` or `AudioKey` fields to filter dropdown options by prefix.
+- **True Zero-GC Pooling & `SoundHandle`:** Active emitters are ticked centrally without per-play coroutines or `WaitWhile` allocations, never kill sounds on `AudioListener.pause`, and return generation-safe `SoundHandle`s (`Stop`, `Pause`, `Resume`, `SetVolume`, `SetPitch`, `Follow`).
+- **Per-Entry Mixing, Variance, Cooldown & Concurrency Caps:** Configure `volume`, `pitch`, `pitchVariance`, `spatialBlend`, `minDistance`/`maxDistance`, `loop`, `cooldown`, and `maxConcurrentInstances` per sound entry, with clean mixer fallback (`Entry.mixerGroup` → `Catalog.defaultMixerGroup` → `AudioRegistry.defaultSfxMixerGroup`).
+- **2-Source Ping-Pong `MusicManager`:** Plays music from either an `AudioKey`, string ID, or raw `AudioClip`/`AudioResource` using two permanent `AudioSource`s and logarithmic crossfades—rapid track changes or `StopMusic` mid-fade never leak zombie audio.
+- **Mixer Volume Helpers & Edit Mode Preview:** Includes `SetMasterVolume`, `SetSFXVolume`, `SetMusicVolume` (`ToLogarithmicVolume`), and one-click `▶` preview buttons directly in Inspectors.
 
 ---
 
@@ -35,20 +36,14 @@
 ## 🚀 Quick Start Guide
 
 ### 1. Create an Audio Catalog
-
-Right-click anywhere in your Project window:
+Right-click anywhere under `Assets/`:
 > **`Create > AudioSystem > Audio Catalog`**
 
-Name it (e.g. `CombatSounds.asset`) and add your audio entries:
-- **ID:** `jump`, `footstep`, `attack`
-- **Resource:** Assign an `AudioClip` or `AudioRandomContainer`.
-- **Mixer Group:** (Optional) Select an `AudioMixerGroup` for routing.
+`AudioRegistry` automatically registers the catalog and ensures it is included in `PlayerSettings > Preloaded Assets`. Add entries (`player_jump`, `ui_click`, `bgm_boss`) with their mixer groups, cooldowns, and concurrency limits.
 
 ---
 
-### 2. Inspector Reference (`AudioKey`)
-
-Avoid typing raw strings—declare an `AudioKey` field in your C# components:
+### 2. Inspector Reference (`AudioKey` & `[AudioId]`)
 
 ```csharp
 using UnityEngine;
@@ -56,25 +51,22 @@ using Yasin.AudioSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
-    // Searchable dropdown menu listing all sound IDs from all catalogs
     [SerializeField] private AudioKey attackSound;
+
+    // Optional prefix filtering on either AudioKey or string fields:
+    [AudioId("ui_"), SerializeField] private AudioKey uiConfirmSound;
 
     public void Attack()
     {
-        // Option 1: Play directly through the key:
-        attackSound.Play(transform.position);
-
-        // Option 2: Play through central AudioSystem API:
-        AudioSystem.Play(attackSound, transform.position);
+        SoundHandle handle = attackSound.Play(transform.position);
+        handle.Follow(transform);
     }
 }
 ```
 
 ---
 
-### 3. Audio Playback API (`AudioSystem.`)
-
-Control all 2D/3D SFX and background music via a single static interface:
+### 3. Playback & Mixer Controls (`AudioSystem`)
 
 ```csharp
 using UnityEngine;
@@ -84,32 +76,26 @@ public class AudioManagerExample : MonoBehaviour
 {
     [SerializeField] private AudioKey uiClickSound;
     [SerializeField] private AudioKey explosionSound;
-    [SerializeField] private AudioClip backgroundMusic;
+    [SerializeField] private AudioKey battleTheme;
 
     void Start()
     {
-        // 1. 2D / UI Sound (spatialBlend = 0):
+        // 1. 2D / UI Sound:
         AudioSystem.PlayUI(uiClickSound);
-        // or directly:
-        uiClickSound.PlayUI();
 
-        // 2. 3D Spatial Sound (Position, Volume, Pitch):
-        AudioSystem.Play(explosionSound, transform.position, volume: 0.9f, pitch: 1.1f);
+        // 2. 3D Spatial Sound with handle control:
+        SoundHandle handle = AudioSystem.Play(explosionSound, transform.position, volumeScale: 0.9f, pitchScale: 1.05f);
 
-        // 3. Background Music (Smooth crossfade):
-        AudioSystem.PlayMusic(backgroundMusic, fadeDuration: 1.5f, loop: true);
+        // 3. Background Music via AudioKey or AudioClip/AudioResource:
+        AudioSystem.PlayMusic(battleTheme, fadeDuration: 1.5f, loop: true);
 
-        // 4. Stop Music:
+        // 4. Stop / Pause / Mixer Volume Controls:
+        AudioSystem.SetMasterVolume(0.8f);
         AudioSystem.StopMusic(fadeDuration: 1f);
-
-        // 5. Stop All Active SFX:
         AudioSystem.StopAllSounds();
     }
 }
 ```
-
----
-
 
 ---
 
